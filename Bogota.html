@@ -1,0 +1,67 @@
+<!--  POGI SCRIPTS -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Assigned Active Files</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    
+<h1 class="page-title">Assigned Active Files</h1>
+<div class="page-subtitle">RTM and Being Measured</div>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
+
+<div class="checkbox-container">
+  <label>
+    <input type="checkbox" id="chkLive" checked>
+    Live
+  </label>
+
+  <label>
+    <input type="checkbox" id="chkTraining" unchecked>
+    Training
+  </label>
+</div>
+
+<div class="search-wrapper">
+    <input class="form-control" id="myInput" type="text" placeholder="Search.." value="">
+</div>
+
+<input type="hidden" id="defaultFilter" value="Bogota">
+
+<div class="table-round">
+    <table class="sortable" id="myTable">
+
+            <thead>
+                <tr>
+                    <th> State </th>
+                    <th> Order </th>
+                    <th id="fileCount"> Reports </th>
+                    <th> Username </th>
+                    <th> Tech ID </th>
+                    <th> Team </th>
+                    <th> Location </th>
+                    <th> Product </th>
+                    <th> Measurement Item </th>
+                    <th> Elapsed Time (h:m:s) </th>
+                    <th> Due In (h:m:s) </th>
+                </tr>
+            </thead>
+            <tbody id="data">
+            </tbody>
+        </table>
+    </div>
+
+<div id="reloadTimer">Auto Reload in: 10:00</div>
+
+</body>
+
+</html>

@@ -404,11 +404,16 @@ setInterval(() => {
     const s = String(abs % 60).padStart(2, '0');
 
 
-if (sec < 3600) {
-    // less than 1 hour → RED
+if (sec < 0) {
+    // due file → negative
     td.style.color = "red";
 
     td.textContent = `-${h}:${m}:${s}`;
+}
+else if (sec < 3600) {
+    // less than 1 hour → RED
+    td.style.color = "red";
+    td.textContent = `${h}:${m}:${s}`;
 } 
 else if (sec < 7200) {
     // less than 2 hours → ORANGE

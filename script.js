@@ -224,40 +224,54 @@ function fetchWithRetry(url, options = {}, retries = 10, delay = 1000) {
               const productName = report.isHipsterJob ? "Hipster" : item.primaryProductName;
               const pmText = report.pmReportID ? " [PM]" : "";
 
-              // Fetch task state
-              return fetch(`https://api.cmh.platform-prod2.evinternal.net/operations-center/api/TaskState/id/${item.taskStateID}`)
-                .then(r => r.ok ? r.json() : Promise.reject())
-                .then(task => ({ report, productName, pmText, task }));
-            })
-            .then(({ report, productName, pmText, task }) => {
-              // Determine userID depending on RTM vs BM
-              const userID = isRTM ? task.preferredUserID : task.userID;
+   // Fetch task state (original)
+return fetch(`https://api.cmh.platform-prod2.evinternal.net/operations-center/api/TaskState/id/${item.taskStateID}`)
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(task => {
 
-              // Fetch user
-              return fetch(`https://api.cmh.platform-prod2.evinternal.net/operations-center/api/User/id?ids=${userID}`)
-                .then(r => r.ok ? r.json() : Promise.reject())
-                .then(user => ({ report, productName, pmText, task, user }));
-            })
-            .then(({ report, productName, pmText, task, user }) => {
-              // Fetch measurement items
-              return fetch(`https://api.cmh.platform-prod2.evinternal.net/operations-center/api/Report/${item.reportID}/measurement-items`)
-                .then(r => r.ok ? r.json() : Promise.reject())
-                .then(mItems => ({ report, productName, pmText, task, user, mItems }));
-            })
-            .then(({ report, productName, pmText, task, user, mItems }) => {
-              // Build measurement items text
-              const mText = (mItems.measurementItems || [])
-                .map(m => "*" + (m.name || "").replace(/\s+/g, ''))
-                .join("  ");
+    // --- NEW FETCH: TaskState by task.taskID ---
+    return fetch(`https://api.cmh.platform-prod2.evinternal.net/operations-center/api/TaskState/${task.taskID}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(task2 => {
 
-              /* ==========================================================================
-                 Build table row HTML (kept markup structure; uses dataset.seconds)
-                 - elapsed: minutes since task state -> converted to seconds in dataset
-                 - due: minutes until item.dueDate -> converted to seconds in dataset
-                 ========================================================================== */
-              temp += `
+        // detect rework in ANY field
+        let isRework = JSON.stringify(task2).includes("Rework");
+
+        return { report, productName, pmText, task, isRework };
+      });
+  });
+
+            })
+            .then(({ report, productName, pmText, task, isRework }) => {
+  // Determine userID depending on RTM vs BM
+  const userID = isRTM ? task.preferredUserID : task.userID;
+
+  // Fetch user
+  return fetch(`https://api.cmh.platform-prod2.evinternal.net/operations-center/api/User/id?ids=${userID}`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(user => ({ report, productName, pmText, task, isRework, user }));
+})
+.then(({ report, productName, pmText, task, isRework, user }) => {
+  // Fetch measurement items
+  return fetch(`https://api.cmh.platform-prod2.evinternal.net/operations-center/api/Report/${item.reportID}/measurement-items`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(mItems => ({ report, productName, pmText, task, isRework, user, mItems }));
+})
+.then(({ report, productName, pmText, task, isRework, user, mItems }) => {
+  // Build measurement items text
+  const mText = (mItems.measurementItems || [])
+    .map(m => "*" + (m.name || "").replace(/\s+/g, ''))
+    .join("  ");
+
+  temp += `
 <tr>
-  <td>${isRTM ? "Ready To Measure" : "Being Measured"}</td>
+<td>
+  ${isRTM
+    ? `Ready To Measure${isRework ? " (Rework)" : ""}`
+    : `Being Measured${isRework ? " (Rework)" : ""}`}
+</td>
+
+
   <td>${isTraining ? "Training" : "Live"}</td>
   <td>${item.reportID}</td>
   <td>${user[0]?.userName ?? ""}</td>
@@ -492,7 +506,7 @@ function startDynamicTimers() {
    ============================================================================ */
 function startReloadTimer() {
   reloadTimerStarted = true;
-  let reloadSeconds = 600; // 10 minutes
+  let reloadSeconds = 300; // 10 minutes
 
   setInterval(() => {
     reloadSeconds--;

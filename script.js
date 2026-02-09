@@ -164,9 +164,10 @@ function fetchWithRetry(url, options = {}, retries = 10, delay = 1000) {
    ============================================================================ */
 (function main() {
   // get reliable time first (keeps old behavior)
-  fetchWithRetry('https://worldtimeapi.org/api/timezone/PST8PDT')
-    .then(timeData => {
-      const ocTime = new Date((timeData.datetime || "").split('.')[0] + '.000');
+  fetchWithRetry('https://timeapi.io/api/Time/current/zone?timeZone=America/Los_Angeles')
+  .then(timeData => {
+    const ocTime = new Date(timeData.dateTime);
+
 
       // --- Teams ---
       return fetch('https://api.cmh.platform-prod2.evinternal.net/operations-center/api/Team')
@@ -335,6 +336,7 @@ return fetch(`https://api.cmh.platform-prod2.evinternal.net/operations-center/ap
 
               // apply filters and sort AFTER injecting this row set
               applyAllFilters();
+initColumnVisibility("myTable");
               sortTableByColumn("myTable", 10, true);
 
               // End of this full report chain
@@ -395,6 +397,30 @@ $(document).ready(function () {
   $("#chkLive").on("change", applyAllFilters);
   $("#chkTraining").on("change", applyAllFilters);
 });
+
+$(document).ready(function () {
+  const liveKey = "chkLiveState";
+  const trainingKey = "chkTrainingState";
+
+  // Restore previous state from localStorage
+  const savedLive = localStorage.getItem(liveKey);
+  const savedTraining = localStorage.getItem(trainingKey);
+
+  if (savedLive !== null) $("#chkLive").prop("checked", savedLive === "true");
+  if (savedTraining !== null) $("#chkTraining").prop("checked", savedTraining === "true");
+
+  // Save state on change
+  $("#chkLive").on("change", function () {
+    localStorage.setItem(liveKey, $(this).is(":checked"));
+    applyAllFilters();
+  });
+
+  $("#chkTraining").on("change", function () {
+    localStorage.setItem(trainingKey, $(this).is(":checked"));
+    applyAllFilters();
+  });
+});
+
 
 /* ============================================================================
    applyAllFilters()
@@ -522,3 +548,102 @@ function startReloadTimer() {
     }
   }, 1000);
 }
+
+
+/* ============================================================================
+   COLUMN VISIBILITY (hide/show specific columns)
+   - Persists state in localStorage
+   - Hides TH + corresponding TDs
+   ============================================================================ */
+
+const COLUMN_VIS_KEY = "hiddenColumns_myTable";
+
+/* Initialize column controls after headers exist */
+function initColumnVisibility(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+
+  const thead = table.tHead;
+  if (!thead) return;
+
+  const headerRow = thead.rows[0];
+  const controls = document.getElementById("columnControls");
+  if (!controls) return;
+
+  controls.innerHTML = "";
+
+  const hiddenCols = getHiddenColumns();
+
+  [...headerRow.cells].forEach((th, index) => {
+    const colName = th.textContent.trim() || `Column ${index + 1}`;
+    const id = `colToggle_${index}`;
+
+    const label = document.createElement("label");
+    label.style.marginRight = "10px";
+    label.style.whiteSpace = "nowrap";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.id = id;
+    cb.checked = !hiddenCols.includes(index);
+
+    cb.addEventListener("change", () => {
+      toggleColumn(tableId, index, !cb.checked);
+    });
+
+    label.appendChild(cb);
+    label.append(` ${colName}`);
+    controls.appendChild(label);
+
+    // Apply persisted state
+    if (hiddenCols.includes(index)) {
+      applyColumnHidden(tableId, index, true);
+    }
+  });
+}
+
+/* Hide or show a column */
+function toggleColumn(tableId, colIndex, hide) {
+  applyColumnHidden(tableId, colIndex, hide);
+
+  let hiddenCols = getHiddenColumns();
+  if (hide && !hiddenCols.includes(colIndex)) hiddenCols.push(colIndex);
+  if (!hide) hiddenCols = hiddenCols.filter(i => i !== colIndex);
+
+  localStorage.setItem(COLUMN_VIS_KEY, JSON.stringify(hiddenCols));
+}
+
+/* Apply visibility to TH + all rows */
+function applyColumnHidden(tableId, colIndex, hide) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+
+  const method = hide ? "add" : "remove";
+
+  // Header
+  table.tHead?.rows[0]?.cells[colIndex]?.classList[method]("hidden-column");
+
+  // Body rows (supports multiple TBODYs)
+  [...table.tBodies].forEach(tbody => {
+    [...tbody.rows].forEach(row => {
+      row.cells[colIndex]?.classList[method]("hidden-column");
+    });
+  });
+}
+
+/* Get persisted hidden columns */
+function getHiddenColumns() {
+  try {
+    return JSON.parse(localStorage.getItem(COLUMN_VIS_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+/* ============================================================================
+   INITIALIZE COLUMN VISIBILITY
+   ============================================================================ */
+document.addEventListener("DOMContentLoaded", () => {
+  initColumnVisibility("myTable");
+});
+

@@ -441,8 +441,11 @@ function applyAllFilters() {
     // --- Filter 1: Search box (empty = match all)
     const matchSearch = searchValue === "" ? true : text.includes(searchValue);
 
-    // --- Filter 2: Default dropdown (empty = match all)
-    const matchDefault = defaultValue === "" ? true : text.includes(defaultValue);
+    // --- Filter 2: Default dropdown (empty = match all, multiple OR values)
+const matchDefault = defaultValue === ""
+  ? true
+  : defaultValue.split('|').some(val => text.includes(val.trim()));
+
 
     // --- Filter 3: Live / Training checkboxes
     const isLive = text.includes("live");
